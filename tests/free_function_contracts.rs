@@ -10,7 +10,7 @@ mod common;
 
 use web_mercator_viewport::{
     add_meters_to_lng_lat, get_distance_scales, get_meter_zoom, lng_lat_to_world, pixels_to_world,
-    scale_to_zoom, units_per_meter, world_to_lng_lat, world_to_pixels, zoom_to_scale,
+    scale_to_zoom, units_per_meter, world_to_lng_lat, world_to_pixels, zoom_to_scale, Precision,
     WebMercatorViewport,
 };
 
@@ -104,12 +104,12 @@ fn units_per_meter_golden() {
 #[should_panic(expected = "assertion failed")]
 fn get_distance_scales_non_finite_longitude_panics() {
     // longitude is read solely for the finiteness check.
-    let _ = get_distance_scales(37.0, f64::INFINITY, false);
+    let _ = get_distance_scales(37.0, f64::INFINITY, Precision::Standard);
 }
 
 #[test]
 fn get_distance_scales_low_precision_omits_second_order() {
-    let s = get_distance_scales(37.75, -122.0, false);
+    let s = get_distance_scales(37.75, -122.0, Precision::Standard);
     assert!(
         s.units_per_meter2.is_none(),
         "no unitsPerMeter2 in low precision"
@@ -122,7 +122,7 @@ fn get_distance_scales_low_precision_omits_second_order() {
 
 #[test]
 fn get_distance_scales_high_precision_has_second_order() {
-    let s = get_distance_scales(37.75, -122.0, true);
+    let s = get_distance_scales(37.75, -122.0, Precision::High);
     let upm2 = s.units_per_meter2.expect("unitsPerMeter2 present");
     let upd2 = s.units_per_degree2.expect("unitsPerDegree2 present");
     // The fixed zero slots: unitsPerMeter2[1] and unitsPerDegree2[0].
@@ -132,7 +132,7 @@ fn get_distance_scales_high_precision_has_second_order() {
 
 #[test]
 fn get_distance_scales_at_equator_golden() {
-    let s = get_distance_scales(0.0, 0.0, true);
+    let s = get_distance_scales(0.0, 0.0, Precision::High);
     assert!((s.units_per_meter[0] - 0.000_012_790_407_194_604_047).abs() < 1e-18);
     assert!((s.meters_per_unit[0] - 78183.59375).abs() < 1e-6);
     assert!((s.units_per_degree[0] - 1.422_222_222_222_222_3).abs() < 1e-12);

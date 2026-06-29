@@ -4,8 +4,8 @@ mod common;
 
 use web_mercator_viewport::{
     altitude_to_fovy, fovy_to_altitude, get_distance_scales, pixels_to_world, scale_to_zoom,
-    units_per_meter, world_to_lng_lat, zoom_to_scale, UnprojectOptions, WebMercatorViewport,
-    WebMercatorViewportProps, MAX_LATITUDE,
+    units_per_meter, world_to_lng_lat, zoom_to_scale, Precision, UnprojectOptions,
+    WebMercatorViewport, WebMercatorViewportProps, MAX_LATITUDE,
 };
 
 #[test]
@@ -34,7 +34,8 @@ fn altitude_fovy_are_inverses() {
 fn units_per_meter_matches_distance_scales() {
     for latitude in [0.0, 37.75, 75.0] {
         let direct = units_per_meter(latitude);
-        let from_scales = get_distance_scales(latitude, 0.0, false).units_per_meter[0];
+        let from_scales =
+            get_distance_scales(latitude, 0.0, Precision::Standard).units_per_meter[0];
         assert_eq!(direct, from_scales);
     }
 }

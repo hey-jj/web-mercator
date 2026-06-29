@@ -54,9 +54,9 @@ fn equality() {
     different.height = 33.0;
     let viewport3 = WebMercatorViewport::new(&different);
 
-    assert!(viewport1.equals(&viewport1));
-    assert!(viewport1.equals(&viewport2));
-    assert!(!viewport1.equals(&viewport3));
+    assert!(viewport1.approx_eq(&viewport1));
+    assert!(viewport1.approx_eq(&viewport2));
+    assert!(!viewport1.approx_eq(&viewport3));
 }
 
 #[test]

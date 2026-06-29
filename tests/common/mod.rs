@@ -1,13 +1,13 @@
 //! Shared helpers for the conformance tests.
 //!
-//! Mirrors the two float-comparison modes used by the canonical suite: an
-//! element-wise tolerance compare and a low-precision rounding compare.
+//! Two float-comparison modes back the golden checks: an element-wise tolerance
+//! compare and a low-precision rounding compare.
 
 #![allow(dead_code)]
 
 use web_mercator_viewport::WebMercatorViewportProps;
 
-/// Rounds a number the way the canonical `toLowPrecision` helper does.
+/// Rounds a number to a low precision for golden comparison.
 ///
 /// Values with magnitude above 1 round to `precision` significant digits, like
 /// `Number.toPrecision`. Smaller values round to `precision` decimal places,
@@ -52,11 +52,10 @@ pub fn lp_eq(a: &[f64], b: &[f64]) -> bool {
     a.len() == b.len() && a.iter().zip(b).all(|(x, y)| lp(*x) == lp(*y))
 }
 
-/// Element-wise relative-tolerance compare, matching `@math.gl/core` `equals`.
+/// Element-wise relative-tolerance compare.
 ///
-/// Each pair must satisfy `|a - b| <= eps * max(1, |a|, |b|)`. This is the same
-/// scaled tolerance the canonical suite applies through its `equals` helper and
-/// `config.EPSILON`.
+/// Each pair must satisfy `|a - b| <= eps * max(1, |a|, |b|)`. This is the
+/// scaled tolerance the golden fixtures were generated against.
 #[must_use]
 pub fn approx_eq(a: &[f64], b: &[f64], eps: f64) -> bool {
     a.len() == b.len()
@@ -76,7 +75,7 @@ pub fn assert_lp(a: &[f64], b: &[f64], label: &str) {
     assert!(lp_eq(a, b), "{label}: {a:?} vs {b:?}");
 }
 
-/// The four canonical sample viewports iterated by most tests.
+/// The four sample viewports iterated by most tests.
 #[must_use]
 pub fn sample_viewports() -> Vec<(&'static str, WebMercatorViewportProps)> {
     vec![

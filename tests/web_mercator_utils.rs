@@ -5,7 +5,7 @@ mod common;
 use common::{approx_eq, lp, sample_viewports, turf_destination};
 use web_mercator_viewport::{
     add_meters_to_lng_lat, get_distance_scales, get_meter_zoom, get_projection_parameters,
-    lng_lat_to_world, zoom_to_scale, ProjectionOptions,
+    lng_lat_to_world, zoom_to_scale, Precision, ProjectionOptions,
 };
 
 const DISTANCE_TOLERANCE: f64 = 0.0005;
@@ -29,7 +29,11 @@ fn lng_lat_to_world_invalid_latitude() {
 #[test]
 fn distance_scales_round_trip() {
     for (_, props) in sample_viewports() {
-        let scales = get_distance_scales(props.latitude.unwrap(), props.longitude.unwrap(), false);
+        let scales = get_distance_scales(
+            props.latitude.unwrap(),
+            props.longitude.unwrap(),
+            Precision::Standard,
+        );
         for i in 0..3 {
             let mu = scales.meters_per_unit[i] * scales.units_per_meter[i];
             let du = scales.degrees_per_unit[i] * scales.units_per_degree[i];
@@ -58,7 +62,7 @@ fn distance_scales_units_per_degree() {
     for (_, props) in sample_viewports() {
         let longitude = props.longitude.unwrap();
         let latitude = props.latitude.unwrap();
-        let s = get_distance_scales(latitude, longitude, true);
+        let s = get_distance_scales(latitude, longitude, Precision::High);
         let upd = s.units_per_degree;
         let upd2 = s.units_per_degree2.unwrap();
 
@@ -75,7 +79,7 @@ fn distance_scales_units_per_degree() {
             let real_coords = [
                 moved[0] - base[0],
                 moved[1] - base[1],
-                z * get_distance_scales(pt[1], pt[0], false).units_per_meter[2],
+                z * get_distance_scales(pt[1], pt[0], Precision::Standard).units_per_meter[2],
             ];
 
             let (pixels, ratio) = get_diff(coords_adjusted, real_coords, scale);
@@ -99,7 +103,7 @@ fn distance_scales_units_per_meter() {
     for (_, props) in sample_viewports() {
         let longitude = props.longitude.unwrap();
         let latitude = props.latitude.unwrap();
-        let s = get_distance_scales(latitude, longitude, true);
+        let s = get_distance_scales(latitude, longitude, Precision::High);
         let upm = s.units_per_meter;
         let upm2 = s.units_per_meter2.unwrap();
 
@@ -116,7 +120,7 @@ fn distance_scales_units_per_meter() {
             let real_coords = [
                 moved[0] - base[0],
                 moved[1] - base[1],
-                z * get_distance_scales(pt[1], pt[0], false).units_per_meter[2],
+                z * get_distance_scales(pt[1], pt[0], Precision::Standard).units_per_meter[2],
             ];
 
             let (pixels, ratio) = get_diff(coords_adjusted, real_coords, scale);
@@ -159,7 +163,7 @@ fn meter_zoom_yields_one_pixel_per_meter() {
     for latitude in [0.0, 37.5, 75.0] {
         let zoom = get_meter_zoom(latitude);
         let scale = zoom_to_scale(zoom);
-        let units = get_distance_scales(latitude, 0.0, false).units_per_meter;
+        let units = get_distance_scales(latitude, 0.0, Precision::Standard).units_per_meter;
         for u in units {
             assert_eq!(lp(u * scale), 1.0, "1 pixel per meter at {latitude}");
         }
