@@ -1,6 +1,6 @@
 //! Compute a non-perspective viewport that frames a bounding box.
 
-use crate::math::clamp;
+use crate::math::{clamp, ASSERT_MESSAGE};
 use crate::utils::{lng_lat_to_world, scale_to_zoom, world_to_lng_lat, MAX_LATITUDE};
 
 /// Padding in pixels to add around the fitted bounds.
@@ -111,7 +111,7 @@ pub fn fit_bounds(options: &FitBoundsOptions) -> FitBoundsResult {
 
     assert!(
         target_size[0] > 0.0 && target_size[1] > 0.0,
-        "@math.gl/web-mercator: assertion failed."
+        "{ASSERT_MESSAGE}"
     );
 
     let scale_x = target_size[0] / size[0];
@@ -128,7 +128,7 @@ pub fn fit_bounds(options: &FitBoundsOptions) -> FitBoundsResult {
     let center_lng_lat = world_to_lng_lat(&center);
     let zoom = max_zoom.min(scale_to_zoom(scale_x.min(scale_y).abs()));
 
-    assert!(zoom.is_finite(), "@math.gl/web-mercator: assertion failed.");
+    assert!(zoom.is_finite(), "{ASSERT_MESSAGE}");
 
     FitBoundsResult {
         longitude: center_lng_lat[0],
@@ -162,7 +162,7 @@ fn padding_object(padding: Option<PaddingOption>) -> Padding {
                     && p.bottom.is_finite()
                     && p.left.is_finite()
                     && p.right.is_finite(),
-                "@math.gl/web-mercator: assertion failed."
+                "{ASSERT_MESSAGE}"
             );
             p
         }

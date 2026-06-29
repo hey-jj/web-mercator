@@ -53,7 +53,8 @@ pub use utils::{
     add_meters_to_lng_lat, altitude_to_fovy, fovy_to_altitude, get_distance_scales, get_meter_zoom,
     get_projection_matrix, get_projection_parameters, get_view_matrix, lng_lat_to_world,
     pixels_to_world, scale_to_zoom, units_per_meter, world_to_lng_lat, world_to_pixels,
-    zoom_to_scale, DistanceScales, ProjectionOptions, ProjectionParameters, MAX_LATITUDE,
+    zoom_to_scale, DistanceScales, Precision, ProjectionOptions, ProjectionParameters,
+    MAX_LATITUDE,
 };
 pub use viewport::{
     get_bounds, ProjectOptions, UnprojectOptions, WebMercatorViewport, WebMercatorViewportProps,

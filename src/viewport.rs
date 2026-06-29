@@ -1,11 +1,11 @@
 //! The immutable [`WebMercatorViewport`] camera and the [`get_bounds`] helper.
 
 use crate::fit_bounds::{fit_bounds, FitBoundsOptions};
-use crate::math::{self, Mat4};
+use crate::math::{self, falsy_or_zero, Mat4};
 use crate::utils::{
     altitude_to_fovy, fovy_to_altitude, get_distance_scales, get_projection_matrix,
     get_view_matrix, lng_lat_to_world, pixels_to_world, world_to_lng_lat, world_to_pixels,
-    zoom_to_scale, DistanceScales, ProjectionOptions, DEFAULT_ALTITUDE,
+    zoom_to_scale, DistanceScales, Precision, ProjectionOptions, DEFAULT_ALTITUDE,
 };
 
 const DEGREES_TO_RADIANS: f64 = std::f64::consts::PI / 180.0;
@@ -77,7 +77,12 @@ impl Default for UnprojectOptions {
 ///
 /// Instances are immutable. Build a new viewport when any parameter changes.
 /// The stored matrices and distance scales are computed once at construction.
+///
+/// The fields are public for reading. Construction goes through
+/// [`WebMercatorViewport::new`], and the struct is `#[non_exhaustive]` so new
+/// computed fields can be added without a breaking change.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct WebMercatorViewport {
     /// Center latitude in degrees, as supplied.
     pub latitude: f64,
@@ -177,7 +182,7 @@ impl WebMercatorViewport {
         let scale = zoom_to_scale(zoom);
         let altitude = altitude.expect("altitude resolved").max(0.75);
 
-        let distance_scales = get_distance_scales(latitude, longitude, false);
+        let distance_scales = get_distance_scales(latitude, longitude, Precision::Standard);
 
         let world = lng_lat_to_world(&[longitude, latitude]);
         let mut center = [world[0], world[1], 0.0];
@@ -226,10 +231,14 @@ impl WebMercatorViewport {
         }
     }
 
-    /// Two viewports are equal when width and height match exactly and the view
-    /// and projection matrices match within a relative tolerance of `1e-6`.
+    /// Reports whether two viewports match within tolerance.
+    ///
+    /// Width and height must match exactly. The view and projection matrices
+    /// must match within a relative tolerance of `1e-6`. The name signals the
+    /// tolerant compare and keeps it distinct from `==`, which the type does
+    /// not implement.
     #[must_use]
-    pub fn equals(&self, other: &WebMercatorViewport) -> bool {
+    pub fn approx_eq(&self, other: &WebMercatorViewport) -> bool {
         self.width == other.width
             && self.height == other.height
             && math::mat4_equals(&other.projection_matrix, &self.projection_matrix)
@@ -299,7 +308,8 @@ impl WebMercatorViewport {
     #[must_use]
     pub fn project_position(&self, xyz: &[f64]) -> [f64; 3] {
         let xy = lng_lat_to_world(xyz);
-        let z = falsy_or_zero(xyz.get(2).copied()) * self.distance_scales.units_per_meter[2];
+        let z = falsy_or_zero(xyz.get(2).copied().unwrap_or(0.0))
+            * self.distance_scales.units_per_meter[2];
         [xy[0], xy[1], z]
     }
 
@@ -308,7 +318,8 @@ impl WebMercatorViewport {
     #[must_use]
     pub fn unproject_position(&self, xyz: &[f64]) -> [f64; 3] {
         let lng_lat = world_to_lng_lat(xyz);
-        let z = falsy_or_zero(xyz.get(2).copied()) * self.distance_scales.meters_per_unit[2];
+        let z = falsy_or_zero(xyz.get(2).copied().unwrap_or(0.0))
+            * self.distance_scales.meters_per_unit[2];
         [lng_lat[0], lng_lat[1], z]
     }
 
@@ -384,8 +395,11 @@ impl WebMercatorViewport {
     }
 
     /// Returns the four corner points of the visible region at elevation `z`.
+    ///
+    /// Each corner is `[lng, lat, z]`. The order is
+    /// `[bottom_left, bottom_right, top_right, top_left]`.
     #[must_use]
-    pub fn get_bounding_region(&self, z: f64) -> Vec<Vec<f64>> {
+    pub fn get_bounding_region(&self, z: f64) -> [[f64; 3]; 4] {
         get_bounds(self, z)
     }
 }
@@ -416,7 +430,7 @@ fn init_matrices(
 /// is `[lng, lat, z]`. When the top frustum plane runs near parallel to the
 /// ground, the top corners come from the far plane instead.
 #[must_use]
-pub fn get_bounds(viewport: &WebMercatorViewport, z: f64) -> Vec<Vec<f64>> {
+pub fn get_bounds(viewport: &WebMercatorViewport, z: f64) -> [[f64; 3]; 4] {
     let width = viewport.width;
     let height = viewport.height;
     let ops = UnprojectOptions {
@@ -424,8 +438,9 @@ pub fn get_bounds(viewport: &WebMercatorViewport, z: f64) -> Vec<Vec<f64>> {
         target_z: Some(z),
     };
 
-    let bottom_left = viewport.unproject(&[0.0, height], ops);
-    let bottom_right = viewport.unproject(&[width, height], ops);
+    // A finite target_z makes unproject return a length-3 `[lng, lat, z]`.
+    let bottom_left = corner(&viewport.unproject(&[0.0, height], ops));
+    let bottom_right = corner(&viewport.unproject(&[width, height], ops));
 
     let half_fov = if viewport.fovy != 0.0 {
         0.5 * viewport.fovy * DEGREES_TO_RADIANS
@@ -441,16 +456,21 @@ pub fn get_bounds(viewport: &WebMercatorViewport, z: f64) -> Vec<Vec<f64>> {
         )
     } else {
         (
-            viewport.unproject(&[0.0, 0.0], ops),
-            viewport.unproject(&[width, 0.0], ops),
+            corner(&viewport.unproject(&[0.0, 0.0], ops)),
+            corner(&viewport.unproject(&[width, 0.0], ops)),
         )
     };
 
-    vec![bottom_left, bottom_right, top_right, top_left]
+    [bottom_left, bottom_right, top_right, top_left]
+}
+
+/// Reads the first three elements of a `[lng, lat, z]` corner.
+fn corner(point: &[f64]) -> [f64; 3] {
+    [point[0], point[1], point[2]]
 }
 
 /// Finds a point on the far clipping plane at screen x and elevation `target_z`.
-fn unproject_on_far_plane(viewport: &WebMercatorViewport, x: f64, target_z: f64) -> Vec<f64> {
+fn unproject_on_far_plane(viewport: &WebMercatorViewport, x: f64, target_z: f64) -> [f64; 3] {
     let matrix = &viewport.pixel_unprojection_matrix;
     let coord0 = math::transform_vector(matrix, [x, 0.0, 1.0, 1.0]);
     let coord1 = math::transform_vector(matrix, [x, viewport.height, 1.0, 1.0]);
@@ -463,13 +483,5 @@ fn unproject_on_far_plane(viewport: &WebMercatorViewport, x: f64, target_z: f64)
     ];
 
     let result = world_to_lng_lat(&coord);
-    vec![result[0], result[1], target_z]
-}
-
-/// Mirrors the JS `x || 0` coercion: 0, NaN, and absent map to 0.
-fn falsy_or_zero(value: Option<f64>) -> f64 {
-    match value {
-        Some(v) if v != 0.0 && !v.is_nan() => v,
-        _ => 0.0,
-    }
+    [result[0], result[1], target_z]
 }

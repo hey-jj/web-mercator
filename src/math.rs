@@ -10,6 +10,20 @@
 /// A column-major 4x4 matrix stored as 16 contiguous `f64` values.
 pub type Mat4 = [f64; 16];
 
+/// Message used by the input-validation assertions across the crate.
+pub(crate) const ASSERT_MESSAGE: &str = "web-mercator-viewport: assertion failed";
+
+/// Mirrors the JS `x || 0` coercion. Zero, NaN, and a non-finite value all map
+/// to 0, every other finite value passes through.
+#[must_use]
+pub(crate) fn falsy_or_zero(value: f64) -> f64 {
+    if value != 0.0 && !value.is_nan() {
+        value
+    } else {
+        0.0
+    }
+}
+
 /// Returns the 4x4 identity matrix.
 #[must_use]
 pub fn identity() -> Mat4 {

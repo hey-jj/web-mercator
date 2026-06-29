@@ -8,7 +8,7 @@
 //! Angles are degrees at the public boundary and radians inside. World
 //! coordinates are pixels on the zoom-0 tile.
 
-use crate::math::{self, Mat4};
+use crate::math::{self, falsy_or_zero, Mat4, ASSERT_MESSAGE};
 
 const PI: f64 = std::f64::consts::PI;
 const PI_4: f64 = PI / 4.0;
@@ -26,14 +26,25 @@ pub const MAX_LATITUDE: f64 = 85.051129;
 /// Default camera altitude in screen units, matching Mapbox GL.
 pub(crate) const DEFAULT_ALTITUDE: f64 = 1.5;
 
-/// Default assertion message, matching the source error text.
-const ASSERT_MESSAGE: &str = "@math.gl/web-mercator: assertion failed.";
+/// Selects whether [`get_distance_scales`] includes the second-order Taylor
+/// terms.
+///
+/// `Standard` returns first-order scales only. `High` adds the `*2` correction
+/// terms that account for the `1/cos(lat)` curvature.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Precision {
+    /// First-order scales. The `*2` second-order fields are `None`.
+    Standard,
+    /// First- and second-order scales. The `*2` fields are populated.
+    High,
+}
 
 /// Per-degree and per-meter world-unit scales around a latitude.
 ///
 /// All vectors have length 3. The `*2` second-order Taylor terms are present
 /// only when high precision is requested.
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct DistanceScales {
     /// World units per meter, one value repeated for x, y, z.
     pub units_per_meter: [f64; 3],
@@ -51,6 +62,7 @@ pub struct DistanceScales {
 
 /// Parameters for a Mapbox-compatible perspective projection.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
 pub struct ProjectionParameters {
     /// Field of view in radians.
     pub fov: f64,
@@ -83,8 +95,9 @@ pub fn scale_to_zoom(scale: f64) -> f64 {
 ///
 /// # Panics
 ///
-/// Panics if `lng` is not finite. Panics with `"invalid latitude"` if `lat` is
-/// not finite or lies outside `[-90, 90]`.
+/// Panics if `lng_lat` has fewer than two elements. Panics if `lng` is not
+/// finite. Panics with `"invalid latitude"` if `lat` is not finite or lies
+/// outside `[-90, 90]`.
 #[must_use]
 pub fn lng_lat_to_world(lng_lat: &[f64]) -> [f64; 2] {
     let lng = lng_lat[0];
@@ -103,6 +116,10 @@ pub fn lng_lat_to_world(lng_lat: &[f64]) -> [f64; 2] {
 }
 
 /// Unprojects a world point `[x, y]` back to `[lng, lat]` in degrees.
+///
+/// # Panics
+///
+/// Panics if `xy` has fewer than two elements.
 #[must_use]
 pub fn world_to_lng_lat(xy: &[f64]) -> [f64; 2] {
     let x = xy[0];
@@ -137,14 +154,14 @@ pub fn units_per_meter(latitude: f64) -> f64 {
 /// Computes per-degree and per-meter world-unit scales around a latitude.
 ///
 /// The output depends only on `latitude`. `longitude` is read solely for the
-/// finiteness check. Set `high_precision` to include the second-order Taylor
-/// terms that correct the `1/cos(lat)` nonlinearity.
+/// finiteness check. Pass [`Precision::High`] to include the second-order
+/// Taylor terms that correct the `1/cos(lat)` nonlinearity.
 ///
 /// # Panics
 ///
 /// Panics if either `latitude` or `longitude` is not finite.
 #[must_use]
-pub fn get_distance_scales(latitude: f64, longitude: f64, high_precision: bool) -> DistanceScales {
+pub fn get_distance_scales(latitude: f64, longitude: f64, precision: Precision) -> DistanceScales {
     assert!(
         latitude.is_finite() && longitude.is_finite(),
         "{ASSERT_MESSAGE}"
@@ -170,7 +187,7 @@ pub fn get_distance_scales(latitude: f64, longitude: f64, high_precision: bool) 
         units_per_degree2: None,
     };
 
-    if high_precision {
+    if precision == Precision::High {
         let lat_cosine2 = (DEGREES_TO_RADIANS * (latitude * DEGREES_TO_RADIANS).tan()) / lat_cosine;
         let units_per_degree_y2 = (units_per_degree_x * lat_cosine2) / 2.0;
         let alt_units_per_degree2 = (world_size / EARTH_CIRCUMFERENCE) * lat_cosine2;
@@ -192,7 +209,9 @@ pub fn get_distance_scales(latitude: f64, longitude: f64, high_precision: bool) 
 ///
 /// # Panics
 ///
-/// Panics through [`lng_lat_to_world`] if the latitude is invalid.
+/// Panics if `lng_lat_z` has fewer than two elements or `xyz` has fewer than
+/// two elements. Panics through [`lng_lat_to_world`] if the latitude is
+/// invalid.
 #[must_use]
 pub fn add_meters_to_lng_lat(lng_lat_z: &[f64], xyz: &[f64]) -> Vec<f64> {
     let longitude = lng_lat_z[0];
@@ -202,7 +221,7 @@ pub fn add_meters_to_lng_lat(lng_lat_z: &[f64], xyz: &[f64]) -> Vec<f64> {
     let y = xyz[1];
     let z = xyz.get(2).copied();
 
-    let scales = get_distance_scales(latitude, longitude, true);
+    let scales = get_distance_scales(latitude, longitude, Precision::High);
     let units_per_meter = scales.units_per_meter;
     let units_per_meter2 = scales.units_per_meter2.expect("high precision requested");
 
@@ -211,7 +230,7 @@ pub fn add_meters_to_lng_lat(lng_lat_z: &[f64], xyz: &[f64]) -> Vec<f64> {
     worldspace[1] += y * (units_per_meter[1] + units_per_meter2[1] * y);
 
     let new_lng_lat = world_to_lng_lat(&worldspace);
-    let new_z = falsy_or_zero(z0) + falsy_or_zero(z);
+    let new_z = falsy_or_zero(z0.unwrap_or(0.0)) + falsy_or_zero(z.unwrap_or(0.0));
 
     if is_finite_opt(z0) || is_finite_opt(z) {
         vec![new_lng_lat[0], new_lng_lat[1], new_z]
@@ -303,7 +322,9 @@ pub fn get_projection_parameters(options: &ProjectionOptions) -> ProjectionParam
     let mut camera_to_sea_level_distance = focal_distance;
 
     if let Some(center) = options.center {
-        let scale = options.scale.expect("center requires scale");
+        // The term reads `center[2] * scale` directly. With `scale` absent it
+        // is NaN and flows through the result. No panic.
+        let scale = options.scale.unwrap_or(f64::NAN);
         camera_to_sea_level_distance += (center[2] * scale) / pitch_radians.cos() / height;
     }
 
@@ -356,7 +377,8 @@ pub fn fovy_to_altitude(fovy: f64) -> f64 {
 ///
 /// # Panics
 ///
-/// Panics if any of x, y, or z is not finite.
+/// Panics if `xyz` has fewer than two elements. Panics if any of x, y, or z is
+/// not finite.
 #[must_use]
 pub fn world_to_pixels(xyz: &[f64], pixel_projection_matrix: &Mat4) -> [f64; 4] {
     let x = xyz[0];
@@ -378,7 +400,8 @@ pub fn world_to_pixels(xyz: &[f64], pixel_projection_matrix: &Mat4) -> [f64; 4] 
 ///
 /// # Panics
 ///
-/// Panics with `"invalid pixel coordinate"` if x or y is not finite.
+/// Panics if `xyz` has fewer than two elements. Panics with
+/// `"invalid pixel coordinate"` if x or y is not finite.
 #[must_use]
 pub fn pixels_to_world(xyz: &[f64], pixel_unprojection_matrix: &Mat4, target_z: f64) -> Vec<f64> {
     let x = xyz[0];
@@ -402,29 +425,12 @@ pub fn pixels_to_world(xyz: &[f64], pixel_unprojection_matrix: &Mat4, target_z: 
     let t = if z0 == z1 {
         0.0
     } else {
-        (falsy_or_zero_f64(target_z) - z0) / (z1 - z0)
+        (falsy_or_zero(target_z) - z0) / (z1 - z0)
     };
     vec![
         math::lerp(coord0[0], coord1[0], t),
         math::lerp(coord0[1], coord1[1], t),
     ]
-}
-
-/// Mirrors the JS `x || 0` coercion: 0, NaN, and absent map to 0.
-fn falsy_or_zero(value: Option<f64>) -> f64 {
-    match value {
-        Some(v) if v != 0.0 && !v.is_nan() => v,
-        _ => 0.0,
-    }
-}
-
-/// Same coercion as [`falsy_or_zero`] for a concrete value.
-fn falsy_or_zero_f64(value: f64) -> f64 {
-    if value != 0.0 && !value.is_nan() {
-        value
-    } else {
-        0.0
-    }
 }
 
 /// Mirrors `Number.isFinite` on an optional input. Absent is not finite.
