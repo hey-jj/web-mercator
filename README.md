@@ -1,4 +1,4 @@
-# web-mercator-viewport
+# web-mercator
 
 Web Mercator projection and a perspective map viewport that match the Mapbox GL
 and deck.gl camera math. Pure `f64`, no dependencies.
@@ -21,7 +21,7 @@ are pixels on the zoom-0 tile. Matrices are column-major length-16 arrays.
 
 ```toml
 [dependencies]
-web-mercator-viewport = "0.1"
+web-mercator = "0.1"
 ```
 
 ## Usage
@@ -29,7 +29,7 @@ web-mercator-viewport = "0.1"
 Project a coordinate to screen pixels and back.
 
 ```rust
-use web_mercator_viewport::{
+use web_mercator::{
     ProjectOptions, UnprojectOptions, WebMercatorViewport, WebMercatorViewportProps,
 };
 
@@ -50,7 +50,7 @@ let lng_lat = viewport.unproject(&[400.0, 300.0], UnprojectOptions::default());
 Frame a bounding box.
 
 ```rust
-use web_mercator_viewport::{fit_bounds, FitBoundsOptions};
+use web_mercator::{fit_bounds, FitBoundsOptions};
 
 let result = fit_bounds(&FitBoundsOptions::new(
     100.0,

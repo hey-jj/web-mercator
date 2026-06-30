@@ -3,7 +3,7 @@
 mod common;
 
 use common::lp;
-use web_mercator_viewport::{fly_to_viewport, get_fly_to_duration, FlyToOptions, ViewportProps};
+use web_mercator::{fly_to_viewport, get_fly_to_duration, FlyToOptions, ViewportProps};
 
 fn start_props() -> ViewportProps {
     ViewportProps {

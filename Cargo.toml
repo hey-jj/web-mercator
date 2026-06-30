@@ -1,5 +1,5 @@
 [package]
-name = "web-mercator-viewport"
+name = "web-mercator"
 version = "0.1.0"
 edition = "2021"
 description = "Web Mercator projection and perspective map viewport/fitBounds math (powers deck.gl)"

@@ -19,7 +19,7 @@
 //! # Example
 //!
 //! ```
-//! use web_mercator_viewport::{WebMercatorViewport, WebMercatorViewportProps};
+//! use web_mercator::{WebMercatorViewport, WebMercatorViewportProps};
 //!
 //! let viewport = WebMercatorViewport::new(&WebMercatorViewportProps {
 //!     width: 800.0,

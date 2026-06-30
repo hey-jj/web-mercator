@@ -3,7 +3,7 @@
 mod common;
 
 use common::lp;
-use web_mercator_viewport::{get_bounds, WebMercatorViewport, WebMercatorViewportProps};
+use web_mercator::{get_bounds, WebMercatorViewport, WebMercatorViewportProps};
 
 struct Case {
     props: WebMercatorViewportProps,

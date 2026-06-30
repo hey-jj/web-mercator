@@ -2,7 +2,7 @@
 
 mod common;
 
-use web_mercator_viewport::{
+use web_mercator::{
     altitude_to_fovy, fovy_to_altitude, get_distance_scales, pixels_to_world, scale_to_zoom,
     units_per_meter, world_to_lng_lat, zoom_to_scale, Precision, UnprojectOptions,
     WebMercatorViewport, WebMercatorViewportProps, MAX_LATITUDE,

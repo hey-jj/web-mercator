@@ -8,7 +8,7 @@
 
 mod common;
 
-use web_mercator_viewport::{
+use web_mercator::{
     add_meters_to_lng_lat, get_distance_scales, get_meter_zoom, lng_lat_to_world, pixels_to_world,
     scale_to_zoom, units_per_meter, world_to_lng_lat, world_to_pixels, zoom_to_scale, Precision,
     WebMercatorViewport,

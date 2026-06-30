@@ -3,7 +3,7 @@
 mod common;
 
 use common::lp;
-use web_mercator_viewport::{
+use web_mercator::{
     fit_bounds, FitBoundsOptions, Padding, PaddingOption, WebMercatorViewport,
     WebMercatorViewportProps,
 };

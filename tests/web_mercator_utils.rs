@@ -3,7 +3,7 @@
 mod common;
 
 use common::{approx_eq, lp, sample_viewports, turf_destination};
-use web_mercator_viewport::{
+use web_mercator::{
     add_meters_to_lng_lat, get_distance_scales, get_meter_zoom, get_projection_parameters,
     lng_lat_to_world, zoom_to_scale, Precision, ProjectionOptions,
 };
@@ -175,7 +175,7 @@ fn projection_parameters_are_valid() {
     let mut cases = sample_viewports();
     cases.push((
         "extremePitched",
-        web_mercator_viewport::WebMercatorViewportProps {
+        web_mercator::WebMercatorViewportProps {
             width: 800.0,
             height: 600.0,
             longitude: Some(-122.43),

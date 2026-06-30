@@ -3,7 +3,7 @@
 mod common;
 
 use common::{approx_eq, sample_viewports};
-use web_mercator_viewport::{
+use web_mercator::{
     ProjectOptions, UnprojectOptions, WebMercatorViewport, WebMercatorViewportProps,
 };
 

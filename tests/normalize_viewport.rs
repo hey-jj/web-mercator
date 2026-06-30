@@ -3,7 +3,7 @@
 mod common;
 
 use common::approx_eq;
-use web_mercator_viewport::{normalize_viewport_props, ViewportProps};
+use web_mercator::{normalize_viewport_props, ViewportProps};
 
 struct Case {
     input: ViewportProps,

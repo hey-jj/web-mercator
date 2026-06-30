@@ -5,7 +5,7 @@
 
 #![allow(dead_code)]
 
-use web_mercator_viewport::WebMercatorViewportProps;
+use web_mercator::WebMercatorViewportProps;
 
 /// Rounds a number to a low precision for golden comparison.
 ///

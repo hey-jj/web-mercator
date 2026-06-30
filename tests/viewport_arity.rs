@@ -7,7 +7,7 @@
 
 mod common;
 
-use web_mercator_viewport::{
+use web_mercator::{
     ProjectOptions, UnprojectOptions, WebMercatorViewport, WebMercatorViewportProps,
 };
 

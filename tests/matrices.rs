@@ -8,7 +8,7 @@
 mod common;
 
 use common::approx_eq;
-use web_mercator_viewport::{
+use web_mercator::{
     altitude_to_fovy, fovy_to_altitude, get_projection_matrix, get_projection_parameters,
     get_view_matrix, lng_lat_to_world, zoom_to_scale, ProjectionOptions,
 };

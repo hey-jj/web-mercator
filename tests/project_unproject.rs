@@ -7,7 +7,7 @@
 mod common;
 
 use common::assert_approx;
-use web_mercator_viewport::{
+use web_mercator::{
     ProjectOptions, UnprojectOptions, WebMercatorViewport, WebMercatorViewportProps,
 };
 

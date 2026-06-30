@@ -11,7 +11,7 @@
 pub type Mat4 = [f64; 16];
 
 /// Message used by the input-validation assertions across the crate.
-pub(crate) const ASSERT_MESSAGE: &str = "web-mercator-viewport: assertion failed";
+pub(crate) const ASSERT_MESSAGE: &str = "web-mercator: assertion failed";
 
 /// Mirrors the JS `x || 0` coercion. Zero, NaN, and a non-finite value all map
 /// to 0, every other finite value passes through.
