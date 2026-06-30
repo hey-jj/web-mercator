@@ -2,7 +2,8 @@
 //!
 //! All matrices are length-16 `f64` arrays indexed `m[col * 4 + row]`. The math
 //! here mirrors the column-major conventions used by WebGL and gl-matrix so the
-//! view and projection matrices match Mapbox GL camera output bit for bit.
+//! view and projection matrices match Mapbox GL camera output to within a small
+//! numerical tolerance (about 1e-9, see the matrix tests).
 //!
 //! Everything runs in `f64`. The matrices never truncate to `f32`, which keeps
 //! the projection round-trips precise.

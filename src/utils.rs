@@ -16,8 +16,8 @@ const DEGREES_TO_RADIANS: f64 = PI / 180.0;
 const RADIANS_TO_DEGREES: f64 = 180.0 / PI;
 const TILE_SIZE: f64 = 512.0;
 
-/// Average earth circumference in meters. Mean of the 40075 km equatorial and
-/// 40007 km meridional circumferences.
+/// Earth circumference in meters for the WGS84 mean-radius sphere:
+/// `2 * pi * 6371.0088 km`, about 40030 km.
 const EARTH_CIRCUMFERENCE: f64 = 40.03e6;
 
 /// Latitude that makes the projected world square: `2 * atan(e^pi) - pi/2`.
