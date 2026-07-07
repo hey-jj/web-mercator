@@ -14,8 +14,8 @@ pub type Mat4 = [f64; 16];
 /// Message used by the input-validation assertions across the crate.
 pub(crate) const ASSERT_MESSAGE: &str = "web-mercator: assertion failed";
 
-/// Mirrors the JS `x || 0` coercion. Zero, NaN, and a non-finite value all map
-/// to 0, every other finite value passes through.
+/// Mirrors the JS `x || 0` coercion. Zero and NaN map to 0. Every other value
+/// passes through.
 #[must_use]
 pub(crate) fn falsy_or_zero(value: f64) -> f64 {
     if value != 0.0 && !value.is_nan() {
