@@ -1,6 +1,6 @@
 [package]
 name = "web-mercator"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Web Mercator projection and perspective map viewport/fitBounds math compatible with Mapbox GL and deck.gl"
 license = "MIT"
